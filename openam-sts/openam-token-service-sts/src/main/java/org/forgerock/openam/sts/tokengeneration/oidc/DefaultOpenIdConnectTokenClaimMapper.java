@@ -21,7 +21,6 @@ import com.iplanet.sso.SSOToken;
 import com.sun.identity.idm.AMIdentity;
 import com.sun.identity.idm.IdRepoException;
 import com.sun.identity.idm.IdUtils;
-import com.sun.identity.sm.DNMapper;
 import com.google.common.base.Joiner;
 import org.forgerock.json.resource.ResourceException;
 import org.forgerock.openam.sts.TokenCreationException;
@@ -45,7 +44,7 @@ public class DefaultOpenIdConnectTokenClaimMapper implements OpenIdConnectTokenC
             final AMIdentity amIdentity = IdUtils.getIdentity(token);
             final HashSet<String> attributeNames = new HashSet<>(claimMap.size());
             attributeNames.addAll(claimMap.values());
-            Map<String, String> joinedMappings =  joinMultiValues(amIdentity.getAttributes(attributeNames));
+            final Map<String, String> joinedMappings =  joinMultiValues(amIdentity.getAttributes(attributeNames));
             /*
              At this point, the key entries joinedMappings will be the attribute name, and the value will be the
              corresponding value pulled from the user data store. Because I need to return a Map where the keys are the
@@ -53,12 +52,11 @@ public class DefaultOpenIdConnectTokenClaimMapper implements OpenIdConnectTokenC
              keys in the claimMap parameter, and whose value correspond to the joinedMappings value.
              */
             Map<String, String> adjustedMap = new HashMap<>(joinedMappings.size());
-            adjustedMap.put("ip", token.getProperty("Host", true));
-            adjustedMap.put("realm", DNMapper.orgNameToRealmName(amIdentity.getRealm()));
             for (Map.Entry<String, String> claimMapEntry : claimMap.entrySet()) {
-                if (!StringUtils.isEmpty(joinedMappings.get(claimMapEntry.getValue()))) {
+                if (!StringUtils.isEmpty(joinedMappings.get(claimMapEntry.getValue()))) 
                     adjustedMap.put(claimMapEntry.getKey(), joinedMappings.get(claimMapEntry.getValue()));
-                }
+                else 
+                	adjustedMap.put(claimMapEntry.getKey(), token.getProperty(claimMapEntry.getValue(),true));
             }
             return adjustedMap;
         } catch (IdRepoException | SSOException e) {
